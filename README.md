@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./priv/static/images/gesttalt-banner.svg" alt="Gesttalt" width="1000" />
+</p>
+
 # Gesttalt
 
 Gesttalt is a decentralized publishing platform built with Elixir and Phoenix.
