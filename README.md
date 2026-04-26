@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./priv/static/images/gesttalt-banner.svg" alt="Gesttalt" width="1000" />
+  <img src="./priv/static/images/gesttalt-banner.png" alt="Gesttalt" width="1000" />
 </p>
 
 # Gesttalt
