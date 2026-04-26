@@ -1,0 +1,34 @@
+[tools]
+erlang = "28.5"
+elixir = "1.19.5-otp-28"
+node = "24.14.0"
+
+[hooks]
+postinstall = "{{config_root}}/mise/tasks/install.sh"
+
+[env]
+MISE_CONFIG_ROOT = "{{config_root}}"
+_.source = ["{{config_root}}/mise/utilities/dev_instance_env.sh"]
+
+[tasks.setup]
+description = "Bootstrap the development environment"
+run = [
+  "mix local.hex --force",
+  "mix local.rebar --force",
+  "mix archive.install hex phx_new --force",
+]
+
+[tasks.dev]
+description = "Start the Phoenix development server"
+run = "mix phx.server"
+
+[tasks.check]
+description = "Run the project's main checks"
+run = [
+  "mix format --check-formatted",
+  "mix compile --warnings-as-errors",
+  "mix test",
+]
+
+[settings]
+experimental = true

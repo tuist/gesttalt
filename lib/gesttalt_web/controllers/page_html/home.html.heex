@@ -1,0 +1,62 @@
+<main>
+  <div class="shell">
+    <section class="hero">
+      <span class="eyebrow">Gesttalt scaffold</span>
+      <div class="vision">
+        <h1>Federated publications, started with a clean Phoenix baseline.</h1>
+        <p>
+          This repository is now set up as an Elixir and Phoenix application with `mise`
+          managing the toolchain. It intentionally skips Tailwind so we can keep the first commit
+          focused on the application skeleton and protocol architecture.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <a class="button button-primary" href="https://hexdocs.pm/phoenix/overview.html">
+          Phoenix guides
+        </a>
+        <a class="button button-secondary" href="https://hexdocs.pm/elixir/introduction.html">
+          Elixir guides
+        </a>
+      </div>
+      <div class="meta">
+        <div class="card">
+          <strong>Framework</strong> Phoenix {List.to_string(Application.spec(:phoenix, :vsn))}
+        </div>
+        <div class="card">
+          <strong>Toolchain</strong> Elixir and Erlang pinned in `mise.toml`
+        </div>
+        <div class="card">
+          <strong>Frontend</strong> Plain CSS bundled through esbuild, no Tailwind
+        </div>
+      </div>
+    </section>
+
+    <section class="grid columns-3">
+      <article class="card">
+        <h3>What's in place</h3>
+        <ul>
+          <li>Phoenix application scaffolded at the repository root</li>
+          <li>Postgres-ready Ecto configuration</li>
+          <li>LiveView, esbuild, and the default Phoenix dev workflow</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>What comes next</h3>
+        <ul>
+          <li>Publication and issue/article domain models</li>
+          <li>ActivityPub, WebFinger, and NodeInfo discovery endpoints</li>
+          <li>IndieWeb capabilities like Micropub and Webmention</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>Useful commands</h3>
+        <pre class="code-block"><code>mise install
+mise tasks run setup
+mise exec -- mix setup
+mise exec -- mix phx.server</code></pre>
+      </article>
+    </section>
+  </div>
+</main>
