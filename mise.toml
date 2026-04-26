@@ -26,6 +26,7 @@ run = "mix phx.server"
 description = "Run the project's main checks"
 run = [
   "mix format --check-formatted",
+  "mix compile --warnings-as-errors",
   "mix test",
 ]
 
