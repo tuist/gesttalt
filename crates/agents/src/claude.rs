@@ -50,10 +50,7 @@ impl AgentCLI for Claude {
     fn detect(&self) -> Result<Option<AgentInfo>> {
         detect_with(AgentKind::Claude, Self::BIN, &["--version"], |s| {
             // `claude --version` prints e.g. "2.1.131 (Claude Code)".
-            s.split_whitespace()
-                .next()
-                .unwrap_or(s.trim())
-                .to_string()
+            s.split_whitespace().next().unwrap_or(s.trim()).to_string()
         })
     }
 
