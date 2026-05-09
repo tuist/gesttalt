@@ -12,9 +12,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: short
-  # Tell rust-cache that the cache key should change whenever any of these
-  # change.
   CARGO_INCREMENTAL: 0
+  # Single source of truth for the rustup toolchain triple, used to install
+  # components below. Keep in sync with mise.toml's `rust.version`.
+  RUST_TOOLCHAIN: 1.95.0-x86_64-unknown-linux-gnu
 
 jobs:
   fmt:
@@ -25,6 +26,7 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           experimental: true
+      - run: rustup component add rustfmt --toolchain $RUST_TOOLCHAIN
       - run: cargo fmt --all -- --check
 
   clippy:
@@ -47,6 +49,7 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           experimental: true
+      - run: rustup component add clippy --toolchain $RUST_TOOLCHAIN
       - uses: Swatinem/rust-cache@v2
         with:
           # Share the cache across this job and `build-test` since they
