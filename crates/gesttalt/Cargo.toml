@@ -1,0 +1,22 @@
+[package]
+name = "gesttalt"
+description = "Desktop orchestrator for coding agents."
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "gesttalt"
+path = "src/main.rs"
+
+[dependencies]
+gpui.workspace = true
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+serde.workspace = true
+serde_json.workspace = true
