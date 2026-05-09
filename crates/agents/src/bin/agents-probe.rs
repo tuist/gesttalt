@@ -134,14 +134,14 @@ fn run_probe_session(adapter: &dyn AgentCLI, prompt: &str) -> agents::Result<()>
     let mut text_chars = 0usize;
     let mut reasoning_chars = 0usize;
     let mut tool_calls = 0usize;
-    let mut session_id = None;
+    let mut started = false;
     let stdout = std::io::stdout();
     let mut handle = stdout.lock();
 
     let mut on_event = |event: &SessionEvent| match event {
-        SessionEvent::SessionStarted { session_id: id } => {
-            session_id = Some(id.clone());
-            let _ = writeln!(handle, "    [session] {id}");
+        SessionEvent::SessionStarted { .. } => {
+            started = true;
+            let _ = writeln!(handle, "    [session-started]");
         }
         SessionEvent::AssistantText { text } => {
             text_chars += text.len();
@@ -160,15 +160,13 @@ fn run_probe_session(adapter: &dyn AgentCLI, prompt: &str) -> agents::Result<()>
 
     let result = adapter.run_session(&req, &mut on_event)?;
     println!();
+    let _ = started;
     println!(
-        "  done: text={}B reasoning={}B tool_calls={} session_id={}",
+        "  done: text={}B reasoning={}B tool_calls={} got_session={}",
         text_chars,
         reasoning_chars,
         tool_calls,
-        session_id
-            .as_deref()
-            .or(result.session_id.as_deref())
-            .unwrap_or("<none>")
+        result.session_id.is_some(),
     );
     if let Some(text) = result.final_text.as_deref() {
         let preview = text.chars().take(120).collect::<String>();
