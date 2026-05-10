@@ -1,4 +1,4 @@
-name: CI
+name: gesttalt
 
 on:
   push:
