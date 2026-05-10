@@ -197,9 +197,7 @@ impl Render for Workspace {
                     .pt(px(96.))
                     .on_mouse_down(
                         MouseButton::Left,
-                        cx.listener(|this, _, window, cx| {
-                            this.dismiss_command_palette(window, cx)
-                        }),
+                        cx.listener(|this, _, window, cx| this.dismiss_command_palette(window, cx)),
                     )
                     .child(palette.clone()),
             )
