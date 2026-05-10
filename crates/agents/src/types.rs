@@ -151,7 +151,10 @@ pub enum SessionEvent {
     /// emit this when explicitly asked for it.
     Reasoning { text: String },
     /// The agent invoked a tool / executed a shell command.
-    ToolUse { name: String, input: serde_json::Value },
+    ToolUse {
+        name: String,
+        input: serde_json::Value,
+    },
     /// The session finished. `text` is the final assistant message if the
     /// adapter could pull one out.
     Done {

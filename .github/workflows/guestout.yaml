@@ -1,0 +1,84 @@
+name: gesttalt
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
+  CARGO_INCREMENTAL: 0
+  # Single source of truth for the rustup toolchain triple, used to install
+  # components below. Keep in sync with mise.toml's `rust.version`.
+  RUST_TOOLCHAIN: 1.95.0-x86_64-unknown-linux-gnu
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          experimental: true
+      - run: rustup component add rustfmt --toolchain $RUST_TOOLCHAIN
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GPUI Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config cmake clang \
+            libasound2-dev \
+            libfontconfig1-dev libfreetype6-dev \
+            libssl-dev libzstd-dev \
+            libwayland-dev wayland-protocols \
+            libxkbcommon-dev libxkbcommon-x11-dev \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libvulkan-dev mesa-vulkan-drivers
+      - uses: jdx/mise-action@v2
+        with:
+          experimental: true
+      - run: rustup component add clippy --toolchain $RUST_TOOLCHAIN
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Share the cache across this job and `build-test` since they
+          # compile the same code.
+          shared-key: linux
+      - run: cargo clippy --workspace --all-targets --locked
+
+  build-test:
+    name: build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GPUI Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config cmake clang \
+            libasound2-dev \
+            libfontconfig1-dev libfreetype6-dev \
+            libssl-dev libzstd-dev \
+            libwayland-dev wayland-protocols \
+            libxkbcommon-dev libxkbcommon-x11-dev \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libvulkan-dev mesa-vulkan-drivers
+      - uses: jdx/mise-action@v2
+        with:
+          experimental: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: linux
+      - run: cargo build --workspace --all-targets --locked
+      - run: cargo test --workspace --locked

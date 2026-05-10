@@ -58,10 +58,7 @@ impl AgentCLI for Codex {
     fn detect(&self) -> Result<Option<AgentInfo>> {
         detect_with(AgentKind::Codex, Self::BIN, &["--version"], |s| {
             // `codex --version` prints e.g. "codex-cli 0.128.0".
-            s.split_whitespace()
-                .last()
-                .unwrap_or(s.trim())
-                .to_string()
+            s.split_whitespace().last().unwrap_or(s.trim()).to_string()
         })
     }
 
