@@ -52,13 +52,13 @@ jobs:
       - run: rustup component add clippy --toolchain $RUST_TOOLCHAIN
       - uses: Swatinem/rust-cache@v2
         with:
-          # Share the cache across this job and `build-test` since they
+          # Share the cache across this job and `build-linux` since they
           # compile the same code.
           shared-key: linux
       - run: cargo clippy --workspace --all-targets --locked
 
-  build-test:
-    name: build & test
+  build-linux:
+    name: build & test (linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,3 +82,16 @@ jobs:
           shared-key: linux
       - run: cargo build --workspace --all-targets --locked
       - run: cargo test --workspace --locked
+
+  build-windows:
+    name: build (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          experimental: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows
+      - run: cargo build --workspace --locked
