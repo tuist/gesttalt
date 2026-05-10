@@ -1,4 +1,4 @@
-use gpui::{Rgba, rgb};
+use gpui::{Hsla, Rgba, hsla, rgb};
 
 pub fn background() -> Rgba {
     rgb(0x1e1e2e)
@@ -26,4 +26,16 @@ pub fn text_muted() -> Rgba {
 
 pub fn accent() -> Rgba {
     rgb(0x89b4fa)
+}
+
+pub fn selection() -> Rgba {
+    rgb(0x45475a)
+}
+
+pub fn hover() -> Rgba {
+    rgb(0x313244)
+}
+
+pub fn modal_backdrop() -> Hsla {
+    hsla(0.0, 0.0, 0.0, 0.45)
 }
