@@ -110,14 +110,16 @@ impl CommandPalette {
         };
         let action = command.action.as_ref();
         workspace.update(cx, |workspace, cx| {
-            workspace.dismiss_command_palette(cx);
+            workspace.dismiss_command_palette(window, cx);
             (action)(workspace, window, cx);
         });
     }
 
-    fn dismiss(&mut self, _: &Dismiss, _: &mut Window, cx: &mut Context<Self>) {
+    fn dismiss(&mut self, _: &Dismiss, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(workspace) = self.workspace.upgrade() {
-            workspace.update(cx, |workspace, cx| workspace.dismiss_command_palette(cx));
+            workspace.update(cx, |workspace, cx| {
+                workspace.dismiss_command_palette(window, cx)
+            });
         }
     }
 

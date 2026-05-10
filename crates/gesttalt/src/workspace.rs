@@ -115,8 +115,7 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         if self.command_palette.is_some() {
-            self.dismiss_command_palette(cx);
-            window.focus(&self.focus_handle);
+            self.dismiss_command_palette(window, cx);
         } else {
             self.open_command_palette(window, cx);
         }
@@ -131,8 +130,9 @@ impl Workspace {
         cx.notify();
     }
 
-    pub fn dismiss_command_palette(&mut self, cx: &mut Context<Self>) {
+    pub fn dismiss_command_palette(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.command_palette.take().is_some() {
+            window.focus(&self.focus_handle);
             cx.notify();
         }
     }
@@ -197,7 +197,9 @@ impl Render for Workspace {
                     .pt(px(96.))
                     .on_mouse_down(
                         MouseButton::Left,
-                        cx.listener(|this, _, _, cx| this.dismiss_command_palette(cx)),
+                        cx.listener(|this, _, window, cx| {
+                            this.dismiss_command_palette(window, cx)
+                        }),
                     )
                     .child(palette.clone()),
             )
