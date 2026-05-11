@@ -16,9 +16,6 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: short
   CARGO_INCREMENTAL: 0
-  # Single source of truth for the rustup toolchain triple, used to install
-  # components below. Keep in sync with mise.toml's `rust.version`.
-  RUST_TOOLCHAIN: 1.95.0-x86_64-unknown-linux-gnu
 
 jobs:
   fmt:
@@ -29,7 +26,7 @@ jobs:
       - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
         with:
           experimental: true
-      - run: rustup component add rustfmt --toolchain $RUST_TOOLCHAIN
+      - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
 
   clippy:
@@ -52,7 +49,7 @@ jobs:
       - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
         with:
           experimental: true
-      - run: rustup component add clippy --toolchain $RUST_TOOLCHAIN
+      - run: rustup component add clippy
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: linux

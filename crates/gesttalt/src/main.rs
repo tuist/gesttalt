@@ -4,6 +4,7 @@ use gpui::{
     TitlebarOptions, WindowBounds, WindowOptions, actions, point, px, size,
 };
 
+mod auto_update;
 mod command_palette;
 mod dev_tools;
 mod dock;

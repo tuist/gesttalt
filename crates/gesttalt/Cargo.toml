@@ -20,3 +20,6 @@ log.workspace = true
 env_logger.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+semver.workspace = true
+tempfile.workspace = true
+ureq.workspace = true
