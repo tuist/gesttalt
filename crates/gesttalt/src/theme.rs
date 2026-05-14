@@ -28,6 +28,10 @@ pub fn accent() -> Rgba {
     rgb(0x89b4fa)
 }
 
+pub fn warning() -> Rgba {
+    rgb(0xf9e2af)
+}
+
 pub fn selection() -> Rgba {
     rgb(0x45475a)
 }

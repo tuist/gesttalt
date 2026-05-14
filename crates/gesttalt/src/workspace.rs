@@ -4,6 +4,7 @@ use gpui::{
     prelude::*, px,
 };
 
+use crate::auto_update::AutoUpdater;
 use crate::command_palette::{
     Command, CommandHandler, CommandPalette, Toggle as ToggleCommandPalette,
 };
@@ -39,6 +40,7 @@ pub struct Workspace {
     right_dock: Entity<Dock>,
     bottom_dock: Entity<Dock>,
     status_bar: Entity<StatusBar>,
+    auto_updater: Entity<AutoUpdater>,
     main_bounds: Bounds<Pixels>,
     previous_drag_position: Option<Point<Pixels>>,
     focus_handle: FocusHandle,
@@ -48,12 +50,15 @@ pub struct Workspace {
 
 impl Workspace {
     pub fn new(cx: &mut Context<Self>) -> Self {
+        let auto_updater = cx.new(AutoUpdater::new);
+        let title_bar = cx.new(|cx| TitleBar::new(auto_updater.clone(), cx));
         Self {
-            title_bar: cx.new(TitleBar::new),
+            title_bar: title_bar.clone(),
             left_dock: cx.new(|_| Dock::new(DockPosition::Left)),
             right_dock: cx.new(|_| Dock::new(DockPosition::Right)),
             bottom_dock: cx.new(|_| Dock::new(DockPosition::Bottom)),
-            status_bar: cx.new(|_| StatusBar::new()),
+            status_bar: cx.new(|cx| StatusBar::new(auto_updater.clone(), title_bar, cx)),
+            auto_updater,
             main_bounds: Bounds::default(),
             previous_drag_position: None,
             focus_handle: cx.focus_handle(),
@@ -268,6 +273,11 @@ fn default_commands() -> Vec<Command> {
             keybinding: None,
             action: reset_docks_handler(),
         },
+        Command {
+            name: "Gesttalt: Check for Updates".into(),
+            keybinding: None,
+            action: check_for_updates_handler(),
+        },
     ]
 }
 
@@ -297,5 +307,13 @@ fn reset_docks_handler() -> CommandHandler {
             dock.set_size(px(200.0));
             cx.notify();
         });
+    })
+}
+
+fn check_for_updates_handler() -> CommandHandler {
+    Box::new(|workspace, _, cx| {
+        workspace
+            .auto_updater
+            .update(cx, |updater, cx| updater.check_now(cx));
     })
 }
