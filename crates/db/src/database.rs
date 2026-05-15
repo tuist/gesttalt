@@ -1,102 +1,90 @@
 use std::path::Path;
 
-use sqlx::SqlitePool;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectOptions, ConnectionTrait, Database as SeaDatabase,
+    DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
+};
+use sea_orm_migration::MigratorTrait;
 
+use crate::entities::{project, workspace};
 use crate::error::Error;
-use crate::project::{Project, derive_name};
-use crate::workspace::Workspace;
+use crate::migration::Migrator;
+use crate::path::derive_name;
 
-/// Async handle to the gesttalt SQLite database. Cheap to clone (wraps a pool).
+/// Async handle to the gesttalt SQLite database. Cheap to clone (wraps a
+/// SeaORM `DatabaseConnection`, which is internally an `Arc` over a pool).
 #[derive(Clone)]
 pub struct Database {
-    pool: SqlitePool,
+    conn: DatabaseConnection,
 }
 
 impl Database {
     /// Open (or create) a database at the given filesystem path. Runs any
     /// pending migrations on connect.
     pub async fn open(path: &Path) -> Result<Self, Error> {
-        let options = SqliteConnectOptions::new()
-            .filename(path)
-            .create_if_missing(true)
-            .foreign_keys(true);
-        Self::connect_with(SqlitePoolOptions::new(), options).await
+        let url = format!("sqlite://{}?mode=rwc", path.display());
+        Self::connect(url).await
     }
 
     /// Open an ephemeral in-memory database. Primarily for tests.
     pub async fn in_memory() -> Result<Self, Error> {
-        let options = SqliteConnectOptions::new()
-            .in_memory(true)
-            .foreign_keys(true);
-        // Each connection to `:memory:` gets its own private database, so the
-        // pool must hold exactly one connection or migrations and queries land
-        // on different DBs.
-        let pool_options = SqlitePoolOptions::new().max_connections(1);
-        Self::connect_with(pool_options, options).await
+        Self::connect("sqlite::memory:".to_string()).await
     }
 
-    async fn connect_with(
-        pool_options: SqlitePoolOptions,
-        connect_options: SqliteConnectOptions,
-    ) -> Result<Self, Error> {
-        let pool = pool_options.connect_with(connect_options).await?;
-        sqlx::migrate!("./migrations").run(&pool).await?;
-        Ok(Self { pool })
+    async fn connect(url: String) -> Result<Self, Error> {
+        // SQLite serializes writes through a single global lock, so a desktop
+        // app gains nothing from a multi-connection pool — and using one would
+        // require running `PRAGMA foreign_keys = ON` per connection. Holding a
+        // single connection sidesteps that and also makes `:memory:` usable
+        // (each connection there gets its own private database).
+        let mut opts = ConnectOptions::new(url);
+        opts.max_connections(1).sqlx_logging(false);
+        let conn = SeaDatabase::connect(opts).await?;
+        conn.execute_unprepared("PRAGMA foreign_keys = ON").await?;
+        Migrator::up(&conn, None).await?;
+        Ok(Self { conn })
     }
 
-    /// Borrow the underlying pool. Useful for ad-hoc queries from callers that
+    /// Borrow the underlying connection for ad-hoc queries from callers that
     /// need to compose with this crate's API.
-    pub fn pool(&self) -> &SqlitePool {
-        &self.pool
+    pub fn connection(&self) -> &DatabaseConnection {
+        &self.conn
     }
 
     // ---- Workspaces ----
 
-    pub async fn create_workspace(&self, name: &str) -> Result<Workspace, Error> {
-        let (id,): (i64,) =
-            sqlx::query_as("INSERT INTO workspaces (name) VALUES (?) RETURNING id")
-                .bind(name)
-                .fetch_one(&self.pool)
-                .await?;
-        Ok(Workspace {
-            id,
-            name: name.to_string(),
-        })
+    pub async fn create_workspace(&self, name: &str) -> Result<crate::Workspace, Error> {
+        let active = workspace::ActiveModel {
+            name: Set(name.to_string()),
+            ..Default::default()
+        };
+        Ok(active.insert(&self.conn).await?)
     }
 
-    pub async fn list_workspaces(&self) -> Result<Vec<Workspace>, Error> {
-        let rows = sqlx::query_as::<_, Workspace>(
-            "SELECT id, name FROM workspaces ORDER BY name COLLATE NOCASE",
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(rows)
+    pub async fn list_workspaces(&self) -> Result<Vec<crate::Workspace>, Error> {
+        Ok(workspace::Entity::find()
+            .order_by_asc(workspace::Column::Name)
+            .all(&self.conn)
+            .await?)
     }
 
-    pub async fn rename_workspace(&self, id: i64, name: &str) -> Result<Workspace, Error> {
-        let affected = sqlx::query("UPDATE workspaces SET name = ? WHERE id = ?")
-            .bind(name)
-            .bind(id)
-            .execute(&self.pool)
+    pub async fn rename_workspace(
+        &self,
+        id: i64,
+        name: &str,
+    ) -> Result<crate::Workspace, Error> {
+        let existing = workspace::Entity::find_by_id(id)
+            .one(&self.conn)
             .await?
-            .rows_affected();
-        if affected == 0 {
-            return Err(Error::NotFound);
-        }
-        Ok(Workspace {
-            id,
-            name: name.to_string(),
-        })
+            .ok_or(Error::NotFound)?;
+        let mut active: workspace::ActiveModel = existing.into();
+        active.name = Set(name.to_string());
+        Ok(active.update(&self.conn).await?)
     }
 
     pub async fn delete_workspace(&self, id: i64) -> Result<(), Error> {
-        let affected = sqlx::query("DELETE FROM workspaces WHERE id = ?")
-            .bind(id)
-            .execute(&self.pool)
-            .await?
-            .rows_affected();
-        if affected == 0 {
+        let res = workspace::Entity::delete_by_id(id).exec(&self.conn).await?;
+        if res.rows_affected == 0 {
             return Err(Error::NotFound);
         }
         Ok(())
@@ -104,44 +92,34 @@ impl Database {
 
     // ---- Projects ----
 
-    pub async fn add_project(&self, workspace_id: i64, path: &Path) -> Result<Project, Error> {
+    pub async fn add_project(
+        &self,
+        workspace_id: i64,
+        path: &Path,
+    ) -> Result<crate::Project, Error> {
         let name = derive_name(path)?;
         // Safe: `derive_name` already validated UTF-8.
         let path_str = path.to_str().expect("validated UTF-8").to_string();
-        let (id,): (i64,) = sqlx::query_as(
-            "INSERT INTO projects (workspace_id, path, name) VALUES (?, ?, ?) RETURNING id",
-        )
-        .bind(workspace_id)
-        .bind(&path_str)
-        .bind(&name)
-        .fetch_one(&self.pool)
-        .await?;
-        Ok(Project {
-            id,
-            workspace_id,
-            path: path_str,
-            name,
-        })
+        let active = project::ActiveModel {
+            workspace_id: Set(workspace_id),
+            path: Set(path_str),
+            name: Set(name),
+            ..Default::default()
+        };
+        Ok(active.insert(&self.conn).await?)
     }
 
-    pub async fn list_projects(&self, workspace_id: i64) -> Result<Vec<Project>, Error> {
-        let rows = sqlx::query_as::<_, Project>(
-            "SELECT id, workspace_id, path, name FROM projects \
-             WHERE workspace_id = ? ORDER BY name COLLATE NOCASE",
-        )
-        .bind(workspace_id)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(rows)
+    pub async fn list_projects(&self, workspace_id: i64) -> Result<Vec<crate::Project>, Error> {
+        Ok(project::Entity::find()
+            .filter(project::Column::WorkspaceId.eq(workspace_id))
+            .order_by_asc(project::Column::Name)
+            .all(&self.conn)
+            .await?)
     }
 
     pub async fn remove_project(&self, id: i64) -> Result<(), Error> {
-        let affected = sqlx::query("DELETE FROM projects WHERE id = ?")
-            .bind(id)
-            .execute(&self.pool)
-            .await?
-            .rows_affected();
-        if affected == 0 {
+        let res = project::Entity::delete_by_id(id).exec(&self.conn).await?;
+        if res.rows_affected == 0 {
             return Err(Error::NotFound);
         }
         Ok(())
@@ -151,16 +129,14 @@ impl Database {
         &self,
         project_id: i64,
         target_workspace_id: i64,
-    ) -> Result<Project, Error> {
-        let row = sqlx::query_as::<_, Project>(
-            "UPDATE projects SET workspace_id = ? WHERE id = ? \
-             RETURNING id, workspace_id, path, name",
-        )
-        .bind(target_workspace_id)
-        .bind(project_id)
-        .fetch_optional(&self.pool)
-        .await?;
-        row.ok_or(Error::NotFound)
+    ) -> Result<crate::Project, Error> {
+        let existing = project::Entity::find_by_id(project_id)
+            .one(&self.conn)
+            .await?
+            .ok_or(Error::NotFound)?;
+        let mut active: project::ActiveModel = existing.into();
+        active.workspace_id = Set(target_workspace_id);
+        Ok(active.update(&self.conn).await?)
     }
 }
 
@@ -249,8 +225,12 @@ mod tests {
         let db = db().await;
         let a = db.create_workspace("a").await.unwrap();
         let b = db.create_workspace("b").await.unwrap();
-        db.add_project(a.id, &PathBuf::from("/tmp/in-a")).await.unwrap();
-        db.add_project(b.id, &PathBuf::from("/tmp/in-b")).await.unwrap();
+        db.add_project(a.id, &PathBuf::from("/tmp/in-a"))
+            .await
+            .unwrap();
+        db.add_project(b.id, &PathBuf::from("/tmp/in-b"))
+            .await
+            .unwrap();
 
         let in_a = db.list_projects(a.id).await.unwrap();
         assert_eq!(in_a.len(), 1);
@@ -289,11 +269,13 @@ mod tests {
     async fn duplicate_project_path_rejected() {
         let db = db().await;
         let ws = db.create_workspace("ws").await.unwrap();
-        db.add_project(ws.id, &PathBuf::from("/tmp/dup")).await.unwrap();
+        db.add_project(ws.id, &PathBuf::from("/tmp/dup"))
+            .await
+            .unwrap();
         let err = db
             .add_project(ws.id, &PathBuf::from("/tmp/dup"))
             .await
             .unwrap_err();
-        assert!(matches!(err, Error::Sqlx(_)));
+        assert!(matches!(err, Error::SeaOrm(_)));
     }
 }

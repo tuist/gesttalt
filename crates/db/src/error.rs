@@ -4,11 +4,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("SQL error: {0}")]
-    Sqlx(#[from] sqlx::Error),
-
-    #[error("migration error: {0}")]
-    Migrate(#[from] sqlx::migrate::MigrateError),
+    #[error("database error: {0}")]
+    SeaOrm(#[from] sea_orm::DbErr),
 
     #[error("project path must be absolute: {0}")]
     PathNotAbsolute(String),

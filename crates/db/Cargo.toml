@@ -13,7 +13,9 @@ workspace = true
 path = "src/lib.rs"
 
 [dependencies]
-sqlx.workspace = true
+sea-orm.workspace = true
+sea-orm-migration.workspace = true
+async-trait.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
