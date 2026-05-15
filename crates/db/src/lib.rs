@@ -9,6 +9,9 @@ mod error;
 mod migration;
 mod path;
 
+#[cfg(test)]
+mod test_support;
+
 pub use database::Database;
 pub use entities::project::Model as Project;
 pub use entities::workspace::Model as Workspace;
