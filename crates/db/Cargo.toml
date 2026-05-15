@@ -16,6 +16,7 @@ path = "src/lib.rs"
 sea-orm.workspace = true
 sea-orm-migration.workspace = true
 async-trait.workspace = true
+dirs.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]

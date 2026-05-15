@@ -24,6 +24,7 @@ semver = "1.0"
 sea-orm = { version = "1", default-features = false, features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 sea-orm-migration = { version = "1", default-features = false, features = ["runtime-tokio-rustls", "sqlx-sqlite"] }
 async-trait = "0.1"
+dirs = "6"
 thiserror = "2.0"
 tempfile = "3.20"
 tokio = { version = "1", features = ["macros", "rt"] }

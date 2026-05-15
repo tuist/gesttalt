@@ -7,6 +7,12 @@ pub enum Error {
     #[error("database error: {0}")]
     SeaOrm(#[from] sea_orm::DbErr),
 
+    #[error("could not determine OS data directory")]
+    NoDataDir,
+
+    #[error("filesystem error: {0}")]
+    Io(#[from] std::io::Error),
+
     #[error("project path must be absolute: {0}")]
     PathNotAbsolute(String),
 

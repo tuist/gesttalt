@@ -35,7 +35,11 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Projects::WorkspaceId).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(Projects::WorkspaceId)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(Projects::Path)
                             .text()
@@ -113,11 +117,7 @@ mod tests {
             .expect("connect to in-memory sqlite")
     }
 
-    async fn schema_object_exists(
-        conn: &DatabaseConnection,
-        kind: &str,
-        name: &str,
-    ) -> bool {
+    async fn schema_object_exists(conn: &DatabaseConnection, kind: &str, name: &str) -> bool {
         let stmt = Statement::from_sql_and_values(
             DatabaseBackend::Sqlite,
             "SELECT name FROM sqlite_master WHERE type = ? AND name = ?",

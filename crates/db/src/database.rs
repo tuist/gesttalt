@@ -1,27 +1,47 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectOptions, ConnectionTrait, Database as SeaDatabase,
-    DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ConnectOptions, ConnectionTrait, Database as SeaDatabase, DatabaseConnection};
 use sea_orm_migration::MigratorTrait;
 
-use crate::entities::{project, workspace};
 use crate::error::Error;
 use crate::migration::Migrator;
-use crate::path::derive_name;
 
 /// Async handle to the gesttalt SQLite database. Cheap to clone (wraps a
 /// SeaORM `DatabaseConnection`, which is internally an `Arc` over a pool).
+///
+/// Per-entity queries live on the entity types themselves
+/// (e.g. [`crate::Workspace::create`], [`crate::Project::add`]); this struct
+/// only owns the connection lifecycle.
 #[derive(Clone)]
 pub struct Database {
     conn: DatabaseConnection,
 }
 
 impl Database {
-    /// Open (or create) a database at the given filesystem path. Runs any
-    /// pending migrations on connect.
+    /// The default filesystem location for the gesttalt database, following
+    /// the platform's data-directory convention:
+    /// - Linux: `$XDG_DATA_HOME/gesttalt/gesttalt.db`
+    ///   (defaults to `~/.local/share/gesttalt/gesttalt.db`)
+    /// - macOS: `~/Library/Application Support/gesttalt/gesttalt.db`
+    /// - Windows: `%APPDATA%\gesttalt\gesttalt.db`
+    pub fn default_path() -> Result<PathBuf, Error> {
+        let data = dirs::data_dir().ok_or(Error::NoDataDir)?;
+        Ok(data.join("gesttalt").join("gesttalt.db"))
+    }
+
+    /// Open (or create) the database at [`Self::default_path`].
+    pub async fn open_default() -> Result<Self, Error> {
+        Self::open(&Self::default_path()?).await
+    }
+
+    /// Open (or create) a database at the given filesystem path. Any missing
+    /// parent directories are created. Runs pending migrations on connect.
     pub async fn open(path: &Path) -> Result<Self, Error> {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
         let url = format!("sqlite://{}?mode=rwc", path.display());
         Self::connect(url).await
     }
@@ -45,97 +65,32 @@ impl Database {
         Ok(Self { conn })
     }
 
-    /// Borrow the underlying connection for ad-hoc queries from callers that
-    /// need to compose with this crate's API.
+    /// Borrow the underlying connection. Pass this to entity methods like
+    /// [`crate::Workspace::create`] or to compose ad-hoc SeaORM queries.
     pub fn connection(&self) -> &DatabaseConnection {
         &self.conn
     }
+}
 
-    // ---- Workspaces ----
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    pub async fn create_workspace(&self, name: &str) -> Result<crate::Workspace, Error> {
-        let active = workspace::ActiveModel {
-            name: Set(name.to_string()),
-            ..Default::default()
-        };
-        Ok(active.insert(&self.conn).await?)
+    #[test]
+    fn default_path_lives_under_os_data_dir() {
+        let path = Database::default_path().expect("data dir available on this platform");
+        let data = dirs::data_dir().expect("data dir available on this platform");
+        assert!(path.starts_with(&data), "expected {path:?} under {data:?}");
+        assert_eq!(path.file_name().unwrap(), "gesttalt.db");
+        assert_eq!(path.parent().unwrap().file_name().unwrap(), "gesttalt");
     }
 
-    pub async fn list_workspaces(&self) -> Result<Vec<crate::Workspace>, Error> {
-        Ok(workspace::Entity::find()
-            .order_by_asc(workspace::Column::Name)
-            .all(&self.conn)
-            .await?)
-    }
-
-    pub async fn rename_workspace(
-        &self,
-        id: i64,
-        name: &str,
-    ) -> Result<crate::Workspace, Error> {
-        let existing = workspace::Entity::find_by_id(id)
-            .one(&self.conn)
-            .await?
-            .ok_or(Error::NotFound)?;
-        let mut active: workspace::ActiveModel = existing.into();
-        active.name = Set(name.to_string());
-        Ok(active.update(&self.conn).await?)
-    }
-
-    pub async fn delete_workspace(&self, id: i64) -> Result<(), Error> {
-        let res = workspace::Entity::delete_by_id(id).exec(&self.conn).await?;
-        if res.rows_affected == 0 {
-            return Err(Error::NotFound);
-        }
-        Ok(())
-    }
-
-    // ---- Projects ----
-
-    pub async fn add_project(
-        &self,
-        workspace_id: i64,
-        path: &Path,
-    ) -> Result<crate::Project, Error> {
-        let name = derive_name(path)?;
-        // Safe: `derive_name` already validated UTF-8.
-        let path_str = path.to_str().expect("validated UTF-8").to_string();
-        let active = project::ActiveModel {
-            workspace_id: Set(workspace_id),
-            path: Set(path_str),
-            name: Set(name),
-            ..Default::default()
-        };
-        Ok(active.insert(&self.conn).await?)
-    }
-
-    pub async fn list_projects(&self, workspace_id: i64) -> Result<Vec<crate::Project>, Error> {
-        Ok(project::Entity::find()
-            .filter(project::Column::WorkspaceId.eq(workspace_id))
-            .order_by_asc(project::Column::Name)
-            .all(&self.conn)
-            .await?)
-    }
-
-    pub async fn remove_project(&self, id: i64) -> Result<(), Error> {
-        let res = project::Entity::delete_by_id(id).exec(&self.conn).await?;
-        if res.rows_affected == 0 {
-            return Err(Error::NotFound);
-        }
-        Ok(())
-    }
-
-    pub async fn move_project(
-        &self,
-        project_id: i64,
-        target_workspace_id: i64,
-    ) -> Result<crate::Project, Error> {
-        let existing = project::Entity::find_by_id(project_id)
-            .one(&self.conn)
-            .await?
-            .ok_or(Error::NotFound)?;
-        let mut active: project::ActiveModel = existing.into();
-        active.workspace_id = Set(target_workspace_id);
-        Ok(active.update(&self.conn).await?)
+    #[tokio::test]
+    async fn open_creates_missing_parent_directories() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("nested/created/gesttalt.db");
+        let _db = Database::open(&path).await.unwrap();
+        assert!(path.exists());
+        assert!(path.parent().unwrap().is_dir());
     }
 }
