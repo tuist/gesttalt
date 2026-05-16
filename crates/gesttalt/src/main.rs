@@ -24,6 +24,8 @@ actions!(
     ]
 );
 
+const APP_ID: &str = "dev.tuist.gesttalt";
+
 #[cfg(target_os = "macos")]
 const COMMAND_PALETTE_KEY: &str = "cmd-k";
 #[cfg(not(target_os = "macos"))]
@@ -64,6 +66,7 @@ fn main() -> Result<()> {
                         appears_transparent: true,
                         traffic_light_position: Some(point(px(9.0), px(9.0))),
                     }),
+                    app_id: Some(APP_ID.to_string()),
                     window_min_size: Some(Size {
                         width: px(640.),
                         height: px(400.),
