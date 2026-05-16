@@ -45,6 +45,13 @@ def crop_to_square(image: Image.Image) -> Image.Image:
     return image.crop((left, top, left + size, top + size))
 
 
+def trim_transparent_padding(image: Image.Image) -> Image.Image:
+    bbox = image.getchannel("A").getbbox()
+    if bbox is None:
+        return image
+    return image.crop(bbox)
+
+
 def resized(image: Image.Image, size: int) -> Image.Image:
     return image.resize((size, size), Image.Resampling.LANCZOS)
 
@@ -74,7 +81,8 @@ def main() -> None:
     RESOURCES.mkdir(parents=True, exist_ok=True)
     WINDOWS_RESOURCES.mkdir(parents=True, exist_ok=True)
 
-    image = crop_to_square(Image.open(SOURCE).convert("RGBA"))
+    image = trim_transparent_padding(Image.open(SOURCE).convert("RGBA"))
+    image = crop_to_square(image)
 
     for filename, size in PNG_SIZES.items():
         resized(image, size).save(RESOURCES / filename)
