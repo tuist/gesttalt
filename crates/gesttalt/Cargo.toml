@@ -34,4 +34,4 @@ ureq.workspace = true
 embed-resource = "3.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.build-dependencies]
-image = { version = "0.25", default-features = false, features = ["png"] }
+image.workspace = true

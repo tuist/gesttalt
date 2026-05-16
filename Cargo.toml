@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gesttalt", "crates/agents", "crates/db"]
+members = ["crates/gesttalt", "crates/agents", "crates/db", "crates/xtask"]
 default-members = ["crates/gesttalt"]
 
 [workspace.package]
@@ -30,6 +30,7 @@ tempfile = "3.20"
 tokio = { version = "1", features = ["macros", "rt"] }
 ureq = { version = "2.12", features = ["json"] }
 which = "8.0"
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "allow" }
