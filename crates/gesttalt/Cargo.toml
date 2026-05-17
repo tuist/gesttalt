@@ -6,6 +6,12 @@ version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+[package.metadata.bundle]
+icon = ["resources/app-icon@2x.png", "resources/app-icon.png"]
+identifier = "dev.tuist.gesttalt"
+name = "Gesttalt"
+osx_minimum_system_version = "13.0"
+
 [lints]
 workspace = true
 
@@ -23,3 +29,9 @@ serde_json.workspace = true
 semver.workspace = true
 tempfile.workspace = true
 ureq.workspace = true
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+embed-resource = "3.0"
+
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.build-dependencies]
+image.workspace = true

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$APP_NAME
+GenericName=Agentic Coding Environment
+Comment=Rust-native desktop workspace for orchestrating coding agents.
+TryExec=$APP_CLI
+StartupNotify=true
+Exec=$APP_CLI %U
+Icon=$APP_ICON
+StartupWMClass=$APP_ID
+Categories=Development;IDE;
+Keywords=gesttalt;agents;coding;
+Terminal=false

@@ -223,9 +223,22 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ needs.check-releases.outputs.next-version }}"
-          mkdir -p dist/package
+          mkdir -p \
+            dist/package \
+            dist/package/share/applications \
+            dist/package/share/icons/hicolor/512x512/apps
           cp "target/release/${{ matrix.binary }}" dist/package/
           cp README.md dist/package/README.md 2>/dev/null || true
+          sed \
+            -e 's#$APP_NAME#Gesttalt#g' \
+            -e 's#$APP_CLI#gesttalt#g' \
+            -e 's#$APP_ICON#dev.tuist.gesttalt#g' \
+            -e 's#$APP_ID#dev.tuist.gesttalt#g' \
+            crates/gesttalt/resources/gesttalt.desktop.in \
+            > dist/package/share/applications/dev.tuist.gesttalt.desktop
+          cp \
+            crates/gesttalt/resources/app-icon.png \
+            dist/package/share/icons/hicolor/512x512/apps/dev.tuist.gesttalt.png
           tar -czf "dist/gesttalt-${VERSION}-${{ matrix.platform }}.tar.gz" -C dist/package .
 
       - name: Package macOS app bundle
@@ -238,6 +251,7 @@ jobs:
           APP_DIR="dist/package/Gesttalt.app"
           mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
           cp "target/release/${{ matrix.binary }}" "${APP_DIR}/Contents/MacOS/gesttalt"
+          cp crates/gesttalt/resources/app-icon.icns "${APP_DIR}/Contents/Resources/app-icon.icns"
           chmod +x "${APP_DIR}/Contents/MacOS/gesttalt"
           cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
@@ -252,6 +266,8 @@ jobs:
             <string>dev.tuist.gesttalt</string>
             <key>CFBundleInfoDictionaryVersion</key>
             <string>6.0</string>
+            <key>CFBundleIconFile</key>
+            <string>app-icon.icns</string>
             <key>CFBundleName</key>
             <string>Gesttalt</string>
             <key>CFBundlePackageType</key>
