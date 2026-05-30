@@ -2,4 +2,4 @@
 # mise pins the Rust *version*. Components (rustfmt, clippy, rust-analyzer,
 # rust-src) are installed via rustup — mise's own `components` field has been
 # observed to no-op silently in 2026.5.x, so we don't depend on it.
-rust = { version = "1.95.0", profile = "minimal" }
+rust = { version = "1.96.0", profile = "minimal" }
