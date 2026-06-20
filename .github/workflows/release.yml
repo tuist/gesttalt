@@ -31,7 +31,7 @@ jobs:
       next-version-number: ${{ steps.gesttalt-check.outputs.next-version-number }}
       latest-version: ${{ steps.gesttalt-check.outputs.latest-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -106,7 +106,7 @@ jobs:
     outputs:
       release-notes: ${{ steps.release-notes.outputs.RELEASE_NOTES }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -182,7 +182,7 @@ jobs:
             archive: zip
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download release metadata
         uses: actions/download-artifact@v4
@@ -319,7 +319,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
