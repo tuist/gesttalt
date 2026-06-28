@@ -1,0 +1,28 @@
+[tools]
+rust = "1.88.0"
+java = "17"
+gradle = "8.10.2"
+"github:tuist/once" = { version = "latest", exe = "once" }
+android-sdk = "latest"
+
+[tasks."build:shared:ios"]
+description = "Build the Rust library for iOS through Once"
+run = "once exec -e PATH=\"$PATH\" -- /bin/bash scripts/build-shared-ios.sh"
+
+[tasks."build:shared:android"]
+description = "Build the Rust library for Android through Once"
+run = "once exec -e PATH=\"$PATH\" -e ANDROID_HOME=\"$ANDROID_HOME\" -e ANDROID_SDK_ROOT=\"$ANDROID_SDK_ROOT\" -e ANDROID_NDK_HOME=\"${ANDROID_NDK_HOME:-}\" -e ANDROID_NDK_ROOT=\"${ANDROID_NDK_ROOT:-}\" -e ANDROID_API_LEVEL=\"${ANDROID_API_LEVEL:-24}\" -e CARGO_HOME=\"${CARGO_HOME:-}\" -e RUSTUP_HOME=\"${RUSTUP_HOME:-}\" -- /bin/bash scripts/build-shared-android.sh"
+
+[tasks."build:ios"]
+description = "Build the Swift iOS app through Once"
+depends = ["build:shared:ios"]
+run = "once exec -e PATH=\"$PATH\" -- /bin/bash scripts/build-ios.sh"
+
+[tasks."build:android"]
+description = "Build the Kotlin Android app through Once"
+depends = ["build:shared:android"]
+run = "once exec -e PATH=\"$PATH\" -e ANDROID_HOME=\"$ANDROID_HOME\" -e ANDROID_SDK_ROOT=\"$ANDROID_SDK_ROOT\" -- /bin/bash scripts/build-android.sh"
+
+[tasks.build]
+description = "Build iOS and Android"
+depends = ["build:ios", "build:android"]
