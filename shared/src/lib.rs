@@ -6,8 +6,11 @@ mod core;
 #[cfg(target_os = "android")]
 mod android;
 
+/// # Safety
+///
+/// `name` must be null or point to a valid, nul-terminated C string.
 #[no_mangle]
-pub extern "C" fn shared_greeting(name: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn shared_greeting(name: *const c_char) -> *mut c_char {
     let name = if name.is_null() {
         "iOS".to_string()
     } else {
@@ -24,8 +27,12 @@ pub extern "C" fn shared_lattice_score(seed: i32) -> i32 {
     core::lattice_score(seed)
 }
 
+/// # Safety
+///
+/// `value` must be null or a pointer returned by `shared_greeting` that has not
+/// already been freed.
 #[no_mangle]
-pub extern "C" fn shared_string_free(value: *mut c_char) {
+pub unsafe extern "C" fn shared_string_free(value: *mut c_char) {
     if value.is_null() {
         return;
     }
