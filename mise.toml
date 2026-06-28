@@ -11,6 +11,32 @@ _.path = [
   "{{env.HOME}}/.local/share/mise/installs/android-sdk/21.0/platform-tools",
 ]
 
+[tasks."once:snapshot"]
+description = "Build a Once snapshot with Android application fixes"
+outputs = ["build/tools/once/538bab10210ce8177e31e3d2e343f38fce265f35/once"]
+run = '''
+set -eu
+revision="538bab10210ce8177e31e3d2e343f38fce265f35"
+install_dir="$PWD/build/tools/once/$revision"
+once_bin="$install_dir/once"
+if [ -x "$once_bin" ]; then
+  exit 0
+fi
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+git clone --filter=blob:none https://github.com/tuist/fabrik "$tmp_dir/fabrik"
+git -C "$tmp_dir/fabrik" checkout "$revision"
+mise install rust@1.96.0
+mise exec rust@1.96.0 -- cargo build \
+  --manifest-path "$tmp_dir/fabrik/Cargo.toml" \
+  --package once-cli \
+  --bin once \
+  --release \
+  --locked
+mkdir -p "$install_dir"
+cp "$tmp_dir/fabrik/target/release/once" "$once_bin"
+'''
+
 [tasks."toolchains:ios"]
 description = "Install Rust targets used by the iOS Once targets"
 run = "rustup target add aarch64-apple-ios-sim"
@@ -47,8 +73,8 @@ run = "once build SharedRustApple"
 
 [tasks."build:shared:android"]
 description = "Build the Rust library for Android through Once"
-depends = ["toolchains:android"]
-run = "once build SharedRustAndroid"
+depends = ["toolchains:android", "once:snapshot"]
+run = '"${ONCE_BIN:-$PWD/build/tools/once/538bab10210ce8177e31e3d2e343f38fce265f35/once}" build SharedRustAndroid'
 
 [tasks."build:ios"]
 description = "Build the Swift iOS app through Once"
@@ -58,7 +84,7 @@ run = "once build AppleApp"
 [tasks."build:android"]
 description = "Build the Kotlin Android app through Once"
 depends = ["build:shared:android"]
-run = "once build AndroidApp"
+run = '"${ONCE_BIN:-$PWD/build/tools/once/538bab10210ce8177e31e3d2e343f38fce265f35/once}" build AndroidApp'
 
 [tasks.build]
 description = "Build iOS and Android"

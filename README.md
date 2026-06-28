@@ -28,12 +28,15 @@ mise run build:ios
 mise run build:android
 ```
 
+The Android app task builds a pinned Once source snapshot until the next Once release includes the Android application fix needed by this target graph.
+
 Run a target directly:
 
 ```sh
 once build AppleApp
-once build AndroidApp
 once run AppleApp
+mise run once:snapshot
+build/tools/once/538bab10210ce8177e31e3d2e343f38fce265f35/once build AndroidApp
 ```
 
 The Android build needs the Android Software Development Kit, documented at https://developer.android.com/studio, and the Android Native Development Kit, documented at https://developer.android.com/ndk. `mise install` provisions the Android command line tools used by the Once targets.
