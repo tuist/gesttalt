@@ -1,5 +1,0 @@
-module SharedRust {
-  header "shared.h"
-  export *
-}
-

@@ -1,2 +1,58 @@
-# Workspace configuration for Once. Build contracts live in scripts/*.sh.
+[[target]]
+name = "SharedRustApple"
+kind = "rust_library"
+srcs = ["shared/src/**/*.rs"]
 
+[target.attrs]
+crate_name = "shared"
+crate_root = "shared/src/lib.rs"
+crate_type = "staticlib"
+edition = "2021"
+target = "aarch64-apple-ios-sim"
+
+[[target]]
+name = "SharedRustAndroid"
+kind = "rust_library"
+srcs = ["shared/src/**/*.rs"]
+
+[target.attrs]
+crate_name = "shared"
+crate_root = "shared/src/lib.rs"
+crate_type = "cdylib"
+edition = "2021"
+target = "aarch64-linux-android"
+android_abi = "arm64-v8a"
+android_api = 24
+
+[[target]]
+name = "AndroidApp"
+kind = "android_binary"
+srcs = ["android/app/src/main/java/**/*.kt"]
+deps = ["./SharedRustAndroid"]
+
+[target.attrs]
+application_id = "com.gesttalt.app"
+manifest = "android/app/src/main/AndroidManifest.xml"
+resource_files = []
+resource_dirs = []
+compile_sdk = 35
+min_sdk_version = 24
+target_sdk_version = 35
+version_code = 1
+version_name = "1.0"
+launch_activity = ".MainActivity"
+
+[[target]]
+name = "AppleApp"
+kind = "apple_application"
+srcs = ["ios/Gesttalt/**/*.swift"]
+deps = ["./SharedRustApple"]
+
+[target.attrs]
+platform = "ios"
+sdk_variant = "simulator"
+bundle_id = "com.gesttalt.app"
+minimum_os = "17.0"
+families = ["iphone", "ipad"]
+product_name = "Gesttalt"
+sdk_frameworks = ["SwiftUI", "Foundation"]

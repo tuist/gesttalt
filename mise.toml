@@ -1,27 +1,64 @@
 [tools]
 rust = "1.88.0"
 java = "17"
-gradle = "8.10.2"
 "github:tuist/once" = { version = "latest", exe = "once" }
-android-sdk = "latest"
+android-sdk = "21.0"
+kotlin = "2.1.0"
+
+[env]
+ANDROID_NDK_HOME = "{{env.HOME}}/.local/share/mise/installs/android-sdk/21.0/ndk/27.3.13750724"
+_.path = [
+  "{{env.HOME}}/.local/share/mise/installs/android-sdk/21.0/platform-tools",
+]
+
+[tasks."toolchains:ios"]
+description = "Install Rust targets used by the iOS Once targets"
+run = "rustup target add aarch64-apple-ios-sim"
+
+[tasks."toolchains:android"]
+description = "Install Android packages and Rust targets used by the Android Once targets"
+run = '''
+set -eu
+responses="${TMPDIR:-/tmp}/gesttalt-android-sdk-licenses.$$"
+trap 'rm -f "$responses"' EXIT
+awk 'BEGIN { for (i = 0; i < 200; i++) print "y" }' > "$responses"
+sdkmanager --licenses < "$responses" >/dev/null || true
+sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.3.13750724" < "$responses"
+rustup target add aarch64-linux-android
+mkdir -p "$HOME/.android"
+if [ ! -f "$HOME/.android/debug.keystore" ]; then
+  keytool -genkeypair \
+    -keystore "$HOME/.android/debug.keystore" \
+    -storepass android \
+    -keypass android \
+    -alias androiddebugkey \
+    -dname "CN=Android Debug,O=Android,C=US" \
+    -keyalg RSA \
+    -keysize 2048 \
+    -validity 10000 \
+    -storetype JKS >/dev/null 2>&1
+fi
+'''
 
 [tasks."build:shared:ios"]
 description = "Build the Rust library for iOS through Once"
-run = "once exec -e PATH=\"$PATH\" -- /bin/bash scripts/build-shared-ios.sh"
+depends = ["toolchains:ios"]
+run = "once build SharedRustApple"
 
 [tasks."build:shared:android"]
 description = "Build the Rust library for Android through Once"
-run = "once exec -e PATH=\"$PATH\" -e ANDROID_HOME=\"$ANDROID_HOME\" -e ANDROID_SDK_ROOT=\"$ANDROID_SDK_ROOT\" -e ANDROID_NDK_HOME=\"${ANDROID_NDK_HOME:-}\" -e ANDROID_NDK_ROOT=\"${ANDROID_NDK_ROOT:-}\" -e ANDROID_API_LEVEL=\"${ANDROID_API_LEVEL:-24}\" -e CARGO_HOME=\"${CARGO_HOME:-}\" -e RUSTUP_HOME=\"${RUSTUP_HOME:-}\" -- /bin/bash scripts/build-shared-android.sh"
+depends = ["toolchains:android"]
+run = "once build SharedRustAndroid"
 
 [tasks."build:ios"]
 description = "Build the Swift iOS app through Once"
 depends = ["build:shared:ios"]
-run = "once exec -e PATH=\"$PATH\" -- /bin/bash scripts/build-ios.sh"
+run = "once build AppleApp"
 
 [tasks."build:android"]
 description = "Build the Kotlin Android app through Once"
 depends = ["build:shared:android"]
-run = "once exec -e PATH=\"$PATH\" -e ANDROID_HOME=\"$ANDROID_HOME\" -e ANDROID_SDK_ROOT=\"$ANDROID_SDK_ROOT\" -- /bin/bash scripts/build-android.sh"
+run = "once build AndroidApp"
 
 [tasks.build]
 description = "Build iOS and Android"

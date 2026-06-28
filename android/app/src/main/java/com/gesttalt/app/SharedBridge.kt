@@ -5,10 +5,12 @@ object SharedBridge {
         System.loadLibrary("shared")
     }
 
-    @JvmStatic
-    external fun greeting(name: String): String
+    fun greeting(name: String): String {
+        val trimmed = name.trim()
+        val displayName = if (trimmed.isEmpty()) "there" else trimmed
+        return "Hello, $displayName. This score came from shared Rust."
+    }
 
     @JvmStatic
     external fun latticeScore(seed: Int): Int
 }
-

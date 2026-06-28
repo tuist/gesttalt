@@ -1,9 +1,9 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.gesttalt.app">
     <application
         android:allowBackup="false"
-        android:label="@string/app_name"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:label="Gesttalt"
+        android:supportsRtl="true">
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -14,4 +14,3 @@
         </activity>
     </application>
 </manifest>
-
