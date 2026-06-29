@@ -1,3 +1,15 @@
 /target
 Cargo.lock.bak
 .DS_Store
+.once/
+build/
+
+ios/Vendor/SharedRust.xcframework/
+ios/build/
+ios/DerivedData/
+ios/*.xcuserdata/
+
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/jniLibs/

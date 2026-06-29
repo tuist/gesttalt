@@ -1,0 +1,55 @@
+[tools]
+rust = "1.88.0"
+java = "17"
+"github:tuist/once" = { version = "0.26.0", exe = "once" }
+android-sdk = "21.0"
+kotlin = "2.1.0"
+
+[env]
+ANDROID_NDK_HOME = "{{env.HOME}}/.local/share/mise/installs/android-sdk/21.0/ndk/27.3.13750724"
+_.path = [
+  "{{env.HOME}}/.local/share/mise/installs/android-sdk/21.0/platform-tools",
+]
+
+[tasks."toolchains:ios"]
+description = "Install Rust targets used by the iOS Once targets"
+run = "rustup target add aarch64-apple-ios-sim"
+
+[tasks."toolchains:android"]
+description = "Install Android packages and Rust targets used by the Android Once targets"
+run = '''
+set -eu
+responses="${TMPDIR:-/tmp}/gesttalt-android-sdk-licenses.$$"
+trap 'rm -f "$responses"' EXIT
+awk 'BEGIN { for (i = 0; i < 200; i++) print "y" }' > "$responses"
+sdkmanager --licenses < "$responses" >/dev/null || true
+sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.3.13750724" < "$responses"
+rustup target add aarch64-linux-android
+mkdir -p "$HOME/.android"
+if [ ! -f "$HOME/.android/debug.keystore" ]; then
+  keytool -genkeypair \
+    -keystore "$HOME/.android/debug.keystore" \
+    -storepass android \
+    -keypass android \
+    -alias androiddebugkey \
+    -dname "CN=Android Debug,O=Android,C=US" \
+    -keyalg RSA \
+    -keysize 2048 \
+    -validity 10000 \
+    -storetype JKS >/dev/null 2>&1
+fi
+'''
+
+[tasks."build:ios"]
+description = "Build the Swift iOS app through Once"
+depends = ["toolchains:ios"]
+run = "once build AppleApp"
+
+[tasks."build:android"]
+description = "Build the Kotlin Android app through Once"
+depends = ["toolchains:android"]
+run = "once build AndroidApp"
+
+[tasks.build]
+description = "Build iOS and Android"
+depends = ["build:ios", "build:android"]
