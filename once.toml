@@ -1,26 +1,14 @@
 [[target]]
-name = "SharedRustApple"
-kind = "rust_library"
+name = "SharedRust"
+kind = "rust_mobile_library"
 srcs = ["shared/src/**/*.rs"]
 
 [target.attrs]
 crate_name = "shared"
 crate_root = "shared/src/lib.rs"
-crate_type = "staticlib"
 edition = "2021"
-target = "aarch64-apple-ios-sim"
-
-[[target]]
-name = "SharedRustAndroid"
-kind = "rust_library"
-srcs = ["shared/src/**/*.rs"]
-
-[target.attrs]
-crate_name = "shared"
-crate_root = "shared/src/lib.rs"
-crate_type = "cdylib"
-edition = "2021"
-target = "aarch64-linux-android"
+apple_target = "aarch64-apple-ios-sim"
+android_target = "aarch64-linux-android"
 android_abi = "arm64-v8a"
 android_api = 24
 
@@ -28,7 +16,7 @@ android_api = 24
 name = "AndroidApp"
 kind = "android_binary"
 srcs = ["android/app/src/main/java/**/*.kt"]
-deps = ["./SharedRustAndroid"]
+deps = ["./SharedRust"]
 
 [target.attrs]
 application_id = "com.gesttalt.app"
@@ -46,7 +34,7 @@ launch_activity = ".MainActivity"
 name = "AppleApp"
 kind = "apple_application"
 srcs = ["ios/Gesttalt/**/*.swift"]
-deps = ["./SharedRustApple"]
+deps = ["./SharedRust"]
 
 [target.attrs]
 platform = "ios"
